@@ -7,50 +7,247 @@ datasource db {
 generator client {
   provider        = "prisma-client-js"
 }
+model User {
+  id               Int            @id @default(autoincrement())
+  password         String?
+  email            String?        @unique
+  name             String?
+  username         String?        @unique
+  role             Role           @default(USER)
+  reviews          Review[]
+  session          Session?
+  slug             String
+  stripeCustomerId String?
+  Subscription     Subscription[]
+  profile          Profile?
+  bookings         Booking[]
+  ratingsGiven     Ratings[]
+}
 
-model Account {
-  id                 String  @id @default(cuid())
-  userId             String
-  type               String
-  provider           String
-  providerAccountId  String
-  refresh_token      String?  @db.Text
-  access_token       String?  @db.Text
-  expires_at         Int?
-  token_type         String?
-  scope              String?
-  id_token           String?  @db.Text
-  session_state      String?
+model Booking {
+  id          Int      @id @default(autoincrement())
+  user        User     @relation(fields: [userId], references: [id])
+  userId      Int
+  start_date  DateTime
+  end_date    DateTime
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  total_price Decimal  @db.Decimal(9, 2)
+}
 
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+model Profile {
+  id     Int    @id @default(autoincrement())
+  bio    String
+  user   User   @relation(fields: [userId], references: [id])
+  userId Int    @unique
+}
 
-  @@unique([provider, providerAccountId])
-  @@index([userId])
+model Review {
+  id         Int      @id @default(autoincrement())
+  content    String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  published  Boolean  @default(false)
+  location   Location @relation(fields: [locationId], references: [id])
+  locationId Int
+  center     Center   @relation(fields: [centerId], references: [id])
+  centerId   Int
+  author     User?    @relation(fields: [authorId], references: [id])
+  authorId   Int?
+}
+
+model Ratings {
+  id         Int      @id @default(autoincrement())
+  rating     Decimal
+  location   Location @relation(fields: [locationId], references: [id])
+  locationId Int
+  center     Center   @relation(fields: [centerId], references: [id])
+  centerId   Int
+  user       User     @relation(fields: [userId], references: [id])
+  userId     Int
 }
 
 model Session {
-  id           String   @id @default(cuid())
-  sessionToken String   @unique
-  userId       String
-  expires      DateTime
-  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  @@index([userId])
+  id        Int       @id @default(autoincrement())
+  authToken String    @unique
+  user      User      @relation(fields: [userId], references: [id])
+  userId    Int       @unique
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
 }
 
-model User {
-  id            String    @id @default(cuid())
-  name          String?
-  email         String?   @unique
-  emailVerified DateTime?
-  image         String?
-  accounts      Account[]
-  sessions      Session[]
+model Subscription {
+  id            Int     @id @default(autoincrement())
+  user          User    @relation(fields: [userId], references: [id])
+  userId        Int
+  stripeId      String  @unique
+  stripeStatus  String?
+  stripePriceId String?
+  quantity      Int?
+  trialEndsAt   Int?
+  endsAt        Int?
+  startDate     Int
+  lastEventDate Int
 }
 
-model VerificationToken {
-  identifier String
-  token      String   @unique
-  expires    DateTime
+model Zone {
+  id          Int       @id @default(autoincrement())
+  name        String
+  description String
+  slug        String
+  countries   Country[]
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}
 
-  @@unique([identifier, token])
+model Country {
+  id          Int      @id @default(autoincrement())
+  name        String
+  description String
+  slug        String
+  Zone        Zone     @relation(fields: [zoneId], references: [id])
+  zoneId      Int
+  regions     Region[]
+  iso3        String
+  numcodes    String
+  phonecode   String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Region {
+  id          Int      @id @default(autoincrement())
+  name        String
+  description String
+  slug        String
+  Country     Country  @relation(fields: [countryId], references: [id])
+  cities      City[]
+  countryId   Int
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model City {
+  id          Int               @id @default(autoincrement())
+  name        String
+  description String
+  slug        String
+  Region      Region            @relation(fields: [regionId], references: [id])
+  regionId    Int
+  centers     Center[]
+  locations   CitiesLocations[]
+}
+
+model Image {
+  id                Int       @id
+  locationImageId   Int?
+  locationGalleryId Int?
+  locationImages    Location? @relation("LocationImages", fields: [locationImageId], references: [id])
+  galleryImages     Location? @relation("GalleryImages", fields: [locationGalleryId], references: [id])
+}
+
+model Location {
+  id           Int                @id @default(autoincrement())
+  name         String
+  description  String
+  Ratings      Ratings[]
+  Reviews      Review[]
+  type         Type               @relation(fields: [typeId], references: [id])
+  typeId       Int
+  category     Category           @relation(fields: [categoryId], references: [id])
+  categoryId   Int
+  depth        Depth              @relation(fields: [depthId], references: [id])
+  depthId      Int
+  visibility   Visibility         @relation(fields: [visibilityId], references: [id])
+  visibilityId Int
+  current      Current            @relation(fields: [currentId], references: [id])
+  currentId    Int
+  slug         String
+  image        Image[]            @relation(name: "LocationImages")
+  gallery      Image[]            @relation(name: "GalleryImages")
+  ltd          Decimal            @db.Decimal(20, 10)
+  lng          Decimal            @db.Decimal(20, 10)
+  cities       CitiesLocations[]
+  centers      CentersLocations[]
+}
+
+model CitiesLocations {
+  id         Int
+  location   Location? @relation(fields: [locationId], references: [id])
+  locationId Int // relation scalar field (used in the `@relation` attribute above)
+  city       City?     @relation(fields: [cityId], references: [id])
+  cityId     Int // relation scalar field (used in the `@relation` attribute above)
+
+  @@id([cityId, locationId])
+}
+
+model CentersLocations {
+  location   Location? @relation(fields: [locationId], references: [id])
+  locationId Int // relation scalar field (used in the `@relation` attribute above)
+  center     Center?   @relation(fields: [centerId], references: [id])
+  centerId   Int // relation scalar field (used in the `@relation` attribute above)
+  assignedAt DateTime  @default(now())
+  assignedBy String
+
+  @@id([centerId, locationId])
+}
+
+model Center {
+  id          Int                @id @default(autoincrement())
+  name        String
+  description String
+  slug        String
+  Ratings     Ratings[]
+  Reviews     Review[]
+  logo        String
+  ltd         Decimal            @db.Decimal(20, 10)
+  lng         Decimal            @db.Decimal(20, 10)
+  city        City               @relation(fields: [cityId], references: [id])
+  cityId      Int
+  locations   CentersLocations[]
+}
+
+model Type {
+  id          Int        @id @default(autoincrement())
+  name        String
+  description String
+  slug        String
+  locations   Location[]
+}
+
+model Category {
+  id          Int        @id @default(autoincrement())
+  name        String
+  description String
+  slug        String
+  locations   Location[]
+}
+
+model Depth {
+  id        Int        @id @default(autoincrement())
+  name      String
+  slug      String
+  locations Location[]
+}
+
+model Visibility {
+  id        Int        @id @default(autoincrement())
+  name      String
+  slug      String
+  locations Location[]
+}
+
+model Current {
+  id        Int        @id @default(autoincrement())
+  name      String
+  slug      String
+  locations Location[]
+}
+
+enum Role {
+  USER
+  ADMIN
+  EDITOR
+  CENTER
 }
