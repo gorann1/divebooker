@@ -23,5 +23,5 @@
   },
   "prettier.ignorePath": ".gitignore",
   "nuxt.isNuxtApp": false,
-  "cSpell.words": ["tailwindcss"] // Don't run prettier for files listed in .gitignore
+  "cSpell.words": ["phonecode", "tailwindcss"] // Don't run prettier for files listed in .gitignore
 }

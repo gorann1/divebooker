@@ -75,6 +75,7 @@ export default function Layout({
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 5v0m0 7v0m0 7v0m0-13a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z" />
               </svg>
             </li>
+            <Link className="text-sm text-gray-400 hover:text-gray-500" href="/countries">Countries</Link>
           </ul>
             <AnimatePresence>
               {!session && status !== "loading" ? (
